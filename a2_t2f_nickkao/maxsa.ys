@@ -1,0 +1,162 @@
+.pos 0x100
+main:
+    irmovq $stackEnd, %rsp          # initialize stack pointer
+    irmovq $array, %rdi             # rdi = &array  = 0x2000
+    irmovq $arraySize, %rsi         # rsi = &arraySize = 0x2080
+    mrmovq (%rsi), %rsi             # rsi = arraySize = 16
+    irmovq $resultStart, %rdx       # rdx = &resultStart = 0x2500
+    irmovq $resultEnd, %rcx         # rcx = &resultEnd = 0x2508
+    call   maxSubArray              # call maxSubArray = 0x1000
+    irmovq $resultSum, %r8          # r8 = &resultSum = 0x2510
+    rmmovq %rax, (%r8)              # resultSum = rax 
+    halt                            # END
+
+.pos 0x1000
+maxSubArray:
+    pushq  %rbx                     # push rbx onto stack
+    pushq  %rbp                     # push rbp onto stack
+    pushq  %r12                     # push r12 onto stack
+    pushq  %r13                     # push r13 onto stack
+    pushq  %r14                     # push r14 onto stack
+    irmovq $1, %r9                  # r9 = 1
+    subq   %rsi, %r9                # r9 = r9 - arraySize
+    jne    L1                       # if(r9 - arraySize != 0) goto L1
+    rmmovq %rdi, (%rcx)             # *rcx = rdi
+    rmmovq %rdi, (%rdx)             # *rdx = rdi
+    mrmovq (%rdi), %r13             # r13 = *rdi
+    jmp    L9                       # goto L9
+L1:
+    irmovq $2, %r10                 # r10 = 2
+    rrmovq %rsi, %rbx               # rbx = rsi
+    divq   %r10, %rbx               # rbx = rbx / 2 (half the array size)
+    irmovq $8, %rbp                 # rbp = 8
+    mulq   %rbx, %rbp               # rbp = 8 * rbx (offset of pointer)
+    addq   %rdi, %rbp               # rbp = rbp + rdi (addr of half)
+    irmovq $8, %r8                  # r8 = 8 
+    rrmovq %rsi, %r9                # r9 = rsi (arraySize)
+    mulq   %r8, %r9                 # r9 = r8 * r9 (offset of arraySize)
+    addq   %rdi, %r9                # r9 = r9 + rdi (addr of end)
+    subq   %r8, %r9                 # r9 = r9 - r8 (end -1)
+    xorq   %rax, %rax               # rax = 0 
+    irmovq $0x8000000000000000, %r10    # r10 = 0x8000000000000000 (r10 = LONG_MIN)
+    rrmovq %rbp, %r11               # r11 = rbp 
+    subq   %r8, %r11                # r11= r11 - r8 (r11 = mid -1)
+L2:
+    rrmovq %r11, %r12               # r12 = r11 (r12 gets ptr value)
+    subq   %rdi, %r12               # r12 = r12 - rdi (mid - 1 - address of array) 
+    jl     L4                       # if (r12 pointer ) < 0 goto L4
+    mrmovq (%r11), %r12             # r12 = *r11 (r12 = *ptr)
+    addq   %r12, %rax               # rax = rax + 12 (*ptr += sum)
+    rrmovq %rax, %r12               # r12 = rax 
+    subq   %r10, %r12               # r12 = r12 - r10 (sum - leftsum)
+    jle    L3                       # if (sum < leftsum) goto L3
+    rrmovq %rax, %r10               # r10 = rax (rewrite leftsum)
+    rmmovq %r11, (%rdx)             # *rdx = r11 (rewrite sa_start)
+L3:
+    subq   %r8, %r11                # r11 = r11 - r8 (decrement pointer)
+    jmp    L2                       # goto L2 (loop)       
+L4:
+    irmovq $0x8000000000000000, %r13    # r13 = 0x8000000000000000 (initialize right sum)
+    rrmovq %rbp, %r11               # r11 = rbp (r11 = mid)
+    xorq   %rax, %rax               # rax = 0  
+L5:
+    rrmovq %r11, %r12               # r12 = r11 (r12 ptr value)
+    subq   %r9, %r12                # r12  = r12 - r9 (check if less than end)
+    jg     L7                       # if (ptr > end) goto L7
+    mrmovq (%r11), %r12             # r12 = *r11 (r12 = *ptr)
+    addq   %r12, %rax               # rax = rax + r12 (*ptr += sum)
+    rrmovq %rax, %r12               # r12 = rax
+    subq   %r13, %r12               # r12 = r12 - r13 (sum -rightsum)
+    jle    L6                       # if (sum < rightsum) goto L6 
+    rrmovq %rax, %r13               # r13 = rax (rewrite rightsum)
+    rmmovq %r11, (%rcx)             # *rcx = r11 (rewrite sa_end)
+L6:                     
+    addq   %r8, %r11                # r11 = r11 + r8 (inrement opinter)
+    jmp    L5                       # goto L5 (loop)
+L7:
+    addq   %r10, %r13               # r13 = r13 + r10 (r13 = bestsum = leftsum + rightsum)
+    rrmovq %rcx, %r14               # r14 = rcx (r14 = sa_end)
+    rrmovq %rsi, %r9                # r9 = rsi (r9 = arraysize)
+    subq   %rbx, %r9                # r9 = r9 - rbx (arraysize - offset of half)
+    rrmovq %rdx, %r12               # r12 = rdx (r12 = sa_start)
+    rrmovq %rbx, %rsi               # rsi = rbx (rsi = offset of half)
+    rrmovq %r9, %rbx                # rbx = r9 
+    pushq  %rdx                     # push rdx onto stack 
+    rrmovq %rsp, %rdx               # rdx = rsp 
+    pushq  %rcx                     # push rcx onto stack
+    rrmovq %rsp, %rcx               # rcx = rsp 
+    call   maxSubArray              # goto maxSubArray
+    popq   %rcx                     # rcx = *(rsp)
+    popq   %rdx                     # rdx = *(rdx)
+    rrmovq %rax, %r9                # r9 = rax
+    subq   %r13, %r9                # r9 = r9 - r13
+    jle    L8                       # if(r9 - r13) >= 0 goto L8
+    rrmovq %rax, %r13               # r13 = rax
+    rmmovq %rdx, (%r12)             # *r12 = rdx
+    rmmovq %rcx, (%r14)             # *r14 = rcx
+L8:
+    rrmovq %rbp, %rdi               # rdi = rbp
+    rrmovq %rbx, %rsi               # rsi = rbx
+    pushq  %rdx                     # *rsp = rdx
+    rrmovq %rsp, %rdx               # rdx = rsp
+    pushq  %rcx                     # *rsp = rcx
+    rrmovq %rsp, %rcx               # rcx = rsp
+    call   maxSubArray              # goto maxSubArray
+    popq   %rcx                     # rcx = *rsp
+    popq   %rdx                     # rdx = *rsp
+    rrmovq %rax, %r9                # r9 = rax
+    subq   %r13, %r9                # r9 = r9 - r13
+    jle    L9                       # if (r9 - r13) >= 0 goto L9
+    rrmovq %rax, %r13               # r13 = rax
+    rmmovq %rdx, (%r12)             # *r12 = rdx
+    rmmovq %rcx, (%r14)             # *r14 = rcx
+L9:
+    rrmovq %r13, %rax               # rax = r13 
+    popq   %r14                     # r14 = *rsp
+    popq   %r13                     # r13 = *rsp
+    popq   %r12                     # r12 = *rsp
+    popq   %rbp                     # rBP = *rsp
+    popq   %rbx                     # rBX = *rsp
+    ret                             # RETURN 
+    
+    
+.pos 0x2000
+array:
+    .quad 13
+    .quad -3
+    .quad -25
+    .quad -20
+    .quad -3
+    .quad -16
+    .quad -23
+    .quad 18
+    .quad 20
+    .quad -7
+    .quad 12
+    .quad -5
+    .quad -22
+    .quad 15
+    .quad -4
+    .quad 7
+arraySize:
+    .quad 16
+
+.pos 0x2500
+resultStart:
+    .quad 0
+resultEnd:
+    .quad 0
+resultSum:
+    .quad 0
+
+.pos 0x2600
+reference:
+     .quad 0x2038
+     .quad 0x2050
+     .quad 43
+
+.pos 0x4000
+stack:
+    .quad 0, 1000
+stackEnd:
+    .quad 0

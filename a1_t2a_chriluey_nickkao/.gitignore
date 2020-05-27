@@ -1,0 +1,6 @@
+debugger
+*.o
+*~
+*.mem
+*.ys
+.vscode/

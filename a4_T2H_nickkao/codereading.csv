@@ -1,0 +1,12 @@
+# Place your answers after the comma on the appropriate line.
+# Each answer should be a single word or single C expression.
+1, uint32_t blockSize = sb->s_log_block_size;
+2, ext2volume
+3, 0
+4, 12
+5, 16843020
+6, 255
+7, close_volume_file(volume_t *volume)
+8, 3
+9, read_disk_block(volume_t *volume, uint32_t daddr, void *buffer)
+10, 2
